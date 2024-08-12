@@ -1,14 +1,17 @@
 from tkinter import Button, Label
 import random
 import settings
+import ctypes   # library that helps to throw general warning messages
+import sys
 
 class Cell:
     all = []  # used to capture the cells instantiated
     cell_count_label_obj = None  # class variable since it is not a instance level
-    cell_count = 0
+    cell_count = settings.CELL_COUNT
     def __init__(self, x, y, is_mine=False):
         self.is_mine = is_mine
         self.is_opened = False
+        self.is_mine_candidate = False
         self.cell_btn_object = None
         self.x = x
         self.y = y
@@ -18,8 +21,8 @@ class Cell:
     def create_btn_object(self, location):
         btn = Button(
             location,   # on center frame
-            width = 12,
-            height=6,
+            width = 10,
+            height=4,
             # text = f"{self.x},{self.y}"
         )
 
@@ -58,6 +61,9 @@ class Cell:
             if self.surrounded_cells_mines_length == 0:
                 for cell_obj in self.surrounded_cells:
                     cell_obj.show_cell()
+        # # Cancel left and right click if the cell is already opened
+        # self.cell_btn_object.unbind('<Button-1>')
+        # self.cell_btn_object.unbind('<Button-3>')
 
     def get_cell_by_axis(self, x, y):
         # Return a cell object based on the values of x and y
@@ -106,17 +112,41 @@ class Cell:
                 Cell.cell_count_label_obj.configure(
                     text=f"Cells left : {Cell.cell_count}"
                 )
+            # if the cell was marked as mine candidate then restore its default color
+            self.cell_btn_object.configure(
+                bg = 'SystemButtonFace'
+            )
         # mark the cell as opened ( use it as the last line of the method )
         self.is_opened = True
+        # Cancel left and right click if the cell is already opened
+        self.cell_btn_object.unbind('<Button-1>')
+        self.cell_btn_object.unbind('<Button-3>')
 
     def show_mine(self):
         # A logic to interrupt the game and display a message that player lost!
         self.cell_btn_object.configure(bg="red") # turn the cell to red
+        ctypes.windll.user32.MessageBoxW(
+            0,
+            'You clicked on a mine',
+            'Game Over!',
+            0
+        )
+        sys.exit()
 
     def right_click_actions(self, event): # bind passes 2 arguments - object and action(right)
-        print(event)
-        print("Im right clicked")
-
+        # print(event)
+        # print("Im right clicked")
+        if not self.is_mine_candidate:
+            # change the color to orange
+            self.cell_btn_object.configure(
+                bg='orange'
+            )
+            self.is_mine_candidate = True
+        else: # perform opposite action i.e.remove orange and restore default cell color
+            self.cell_btn_object.configure(
+                bg='SystemButtonFace'
+            )
+            self.is_mine_candidate = False
     @staticmethod    # Class's Global Method - not specific to any cell
     def randomize_mines():
         picked_cells = random.sample(
