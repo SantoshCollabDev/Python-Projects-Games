@@ -1,11 +1,14 @@
-from tkinter import Button
+from tkinter import Button, Label
 import random
 import settings
 
 class Cell:
     all = []  # used to capture the cells instantiated
+    cell_count_label_obj = None  # class variable since it is not a instance level
+    cell_count = 0
     def __init__(self, x, y, is_mine=False):
         self.is_mine = is_mine
+        self.is_opened = False
         self.cell_btn_object = None
         self.x = x
         self.y = y
@@ -26,13 +29,35 @@ class Cell:
         btn.bind('<Button-3>',self.right_click_actions ) # right click
         self.cell_btn_object = btn
 
+    # Function to fetch number of cells left to click at any point in time
+    # in the game
+    # def create_cell_count_label(self, location): --- converted to static method below
+    @staticmethod    # since this is a generic function performed throughout the game
+    # independent of any object
+    def create_cell_count_label(location):
+        lbl = Label(
+            location,
+            bg = 'black',
+            fg = 'white',
+            text=f"Cells left : {Cell.cell_count}",
+            font= ("", 32)
+        )
+        Cell.cell_count_label_obj = lbl
+
     def left_click_actions(self, event): # bind passes 2 arguments - object and action(left)
         # print(event)
         # print("Im left clicked")
         if self.is_mine:
             self.show_mine()
         else:
-            self.show_cell()    # access surrounded cells info
+            # self.show_cell()    # display surrounded cells info on cell clicked
+
+            # speed up the game by auto-filling the surrounding cells info
+            # when the number of mines around the clicked cell is ZERO
+            self.show_cell()    # display surrounded cells info on cell clicked
+            if self.surrounded_cells_mines_length == 0:
+                for cell_obj in self.surrounded_cells:
+                    cell_obj.show_cell()
 
     def get_cell_by_axis(self, x, y):
         # Return a cell object based on the values of x and y
@@ -68,11 +93,21 @@ class Cell:
         return counter
 
     def show_cell(self):
-        # print(self.get_cell_by_axis(0,0))
-        # print(self.surrounded_cells)   # read surrounded cell object
-        # print(self.surrounded_cells_mines_length)  # no of mines around the cell clicked
-        # display the count of surrounding mine cells on the cell clicked
-        self.cell_btn_object.configure(text=f"{self.surrounded_cells_mines_length}")
+        if not self.is_opened:
+            Cell.cell_count -= 1
+            # print(self.get_cell_by_axis(0,0))
+            # print(self.surrounded_cells)   # read surrounded cell object
+            # print(self.surrounded_cells_mines_length)  # no of mines around the cell clicked
+            # display the count of surrounding mine cells on the cell clicked
+            self.cell_btn_object.configure(text=f"{self.surrounded_cells_mines_length}")
+
+            # Replace the text of cell count label with the newer count
+            if Cell.cell_count_label_obj: # check if it None or carries some value
+                Cell.cell_count_label_obj.configure(
+                    text=f"Cells left : {Cell.cell_count}"
+                )
+        # mark the cell as opened ( use it as the last line of the method )
+        self.is_opened = True
 
     def show_mine(self):
         # A logic to interrupt the game and display a message that player lost!
